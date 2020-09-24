@@ -7,7 +7,11 @@ class ElementWrapper{
         if(name.match(/^on([\s\S]+)$/)){
             this.root.addEventListener(RegExp.$1.replace(/^[\s\S]/, c=>c.toLowerCase()),val);
         } else {
-            this.root.setAttribute(name,val)
+            if(name === 'className'){
+                this.root.setAttribute('class',val)
+            }else{
+                this.root.setAttribute(name,val)
+            }
         }
     }
     appendChild(component){
@@ -51,8 +55,19 @@ export class Component{
         this.render()[RENDER_TO_DOM](range)
     }
     rerender(){
-        this._range.deleteContents();
-        this[RENDER_TO_DOM](this._range)
+        //保存旧的range
+        let oldRange = this._range
+
+        //创建新的range,将新range放到旧range前
+        let range = document.createRange();
+        range.setStart(oldRange.startContainer,oldRange.startOffset);
+        range.setEnd(oldRange.startContainer,oldRange.startOffset);
+        this[RENDER_TO_DOM](range)
+
+        //旧的range放到新range后面
+        oldRange.setStart(range.endContainer,range.endOffset)
+        oldRange.deleteContents();
+        
     }
     setState(newState){
         if(this.state === null || typeof this.state !== 'object'){
@@ -94,6 +109,9 @@ export function createElement (type, attrs, ...children){
         for(let child of children){
             if(typeof child === 'string'){
                 child = new TextWrapper(child)
+            }
+            if(child === null){
+                continue;
             }
             if(typeof child === 'object' && child instanceof Array){
                 insertChild(child)
